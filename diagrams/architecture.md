@@ -1,3 +1,6 @@
+# Architecture Diagram
+
+```mermaid
 %%{init: {'theme': 'dark'}}%%
 flowchart LR
 
@@ -120,3 +123,4 @@ flowchart LR
     GitHub --> Actions
     Actions --> Terraform
     Terraform --> Azure
+```
