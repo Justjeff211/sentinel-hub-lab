@@ -1,0 +1,31 @@
+name: Render Mermaid Diagram
+
+on:
+  push:
+    paths:
+      - "diagrams/architecture.mmd"
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mermaid-cli
+        run: npm install -g @mermaid-js/mermaid-cli
+
+      - name: Render SVG and PNG
+        run: |
+          mmdc -i diagrams/architecture.mmd -o diagrams/architecture.svg -b transparent
+          mmdc -i diagrams/architecture.mmd -o diagrams/architecture.png -b white
+
+      - name: Commit rendered diagram
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add diagrams/architecture.svg diagrams/architecture.png
+          git diff --staged --quiet || git commit -m "Auto-render architecture diagram [skip ci]"
+          git push
