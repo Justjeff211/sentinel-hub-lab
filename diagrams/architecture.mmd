@@ -1,0 +1,122 @@
+%%{init: {'theme': 'dark'}}%%
+flowchart LR
+
+    %% ===========================
+    %% External
+    %% ===========================
+    Internet((Internet))
+    GitHub[GitHub]
+    Entra[Microsoft Entra ID]
+
+    %% ===========================
+    %% Azure Subscription
+    %% ===========================
+    subgraph Azure["Azure Subscription - South Africa North"]
+
+        %% -----------------------
+        %% Hub Network
+        %% -----------------------
+        subgraph Hub["Hub VNet (10.10.0.0/24)"]
+
+            Bastion[Azure Bastion]
+            Firewall[Azure Firewall]
+            Gateway[VPN Gateway]
+            Mgmt[Shared Management Subnet]
+
+        end
+
+        %% -----------------------
+        %% Identity
+        %% -----------------------
+        subgraph Identity["Identity Spoke"]
+
+            DC1[Windows Server<br/>Active Directory]
+            DNS[DNS]
+            AADConnect[Entra Connect]
+
+        end
+
+        %% -----------------------
+        %% SOC
+        %% -----------------------
+        subgraph SOC["SOC Tools Spoke"]
+
+            Sentinel[Microsoft Sentinel]
+            LAW[Log Analytics]
+            Defender[Microsoft Defender XDR]
+            Storage[Storage Account]
+            Automation[Logic Apps]
+            KQL[KQL Analytics]
+
+        end
+
+        %% -----------------------
+        %% Workloads
+        %% -----------------------
+        subgraph Workloads["Production Workloads"]
+
+            Win11[Windows 11 Endpoint]
+            WinServer[Windows Server]
+            Ubuntu[Ubuntu Server]
+            Kali[Kali Attacker]
+
+        end
+
+        %% -----------------------
+        %% Monitoring
+        %% -----------------------
+        subgraph Monitor["Network Monitoring"]
+
+            AMA[Azure Monitor Agent]
+            Sysmon[Sysmon]
+            Zeek[Zeek]
+            Suricata[Suricata]
+        end
+
+    end
+
+    %% ===========================
+    %% CI/CD
+    %% ===========================
+    subgraph DevOps["Infrastructure as Code"]
+
+        Terraform[Terraform]
+        Actions[GitHub Actions]
+
+    end
+
+    %% ===========================
+    %% Connections
+    %% ===========================
+
+    Internet --> Firewall
+    Firewall --> Hub
+
+    Hub --> Identity
+    Hub --> SOC
+    Hub --> Workloads
+    Hub --> Monitor
+
+    Bastion --> WinServer
+    Bastion --> DC1
+    Bastion --> Ubuntu
+
+    Win11 --> AMA
+    WinServer --> AMA
+    Ubuntu --> AMA
+
+    AMA --> LAW
+    Sysmon --> LAW
+    Zeek --> LAW
+    Suricata --> LAW
+
+    LAW --> Sentinel
+    Defender --> Sentinel
+    KQL --> Sentinel
+
+    DC1 --> AADConnect
+    AADConnect --> Entra
+
+    GitHub --> Actions
+    Actions --> Terraform
+    Terraform --> Azure
