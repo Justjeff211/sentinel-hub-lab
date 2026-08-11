@@ -4,7 +4,7 @@ A small hub-and-spoke network in Azure that I built to get properly hands-on wit
 
 ## What this actually is
 
-I wanted somewhere I could watch real attack traffic and see whether Sentinel actually catches it and not just read on detection engineering but build and tune it myself. So this is a hub-and-spoke VNet sitting in Azure's South Africa North region with a domain controller, a handful of Windows and Linux endpoints and a Kali box that sits there generating the kind of noise a SOC actually has to deal with. Everything gets logged through Sysmon, Zeek and Suricata, funnelled into Log Analytics and surfaced through Microsoft Sentinel and Defender XDR. The whole thing is stood up (and torn down) with Terraform, run through GitHub Actions, so I'm not clicking through the Azure portal every time I want to rebuild it.
+I wanted somewhere I could watch real attack traffic and see whether Sentinel actually catches it and not just read on detection engineering but build and tune it myself. So this is a hub-and-spoke VNet sitting in Azure's South Africa North region with a domain controller, a handful of Windows and Linux endpoints and a Kali box that sits there generating the kind of noise a SOC actually has to deal with. Everything gets logged through Sysmon, Zeek and Suricata, funnelled into Log Analytics and surfaced through Microsoft Sentinel and Defender XDR. I plan to stand this up with Terraform, run it through GitHub Actions so I'm not clicking through the Azure portal every time I want to rebuild it.
 
 ## Architecture
 
