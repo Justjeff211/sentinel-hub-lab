@@ -362,7 +362,7 @@ Terraform is part of the project because I want to learn how to build and manage
 
 **Terraform is new to me.**
 
-I haven't previously worked with it professionally, so this project is also an opportunity to learn it by actually using it.
+I haven't previously worked with it before, so this project is also an opportunity to learn it by actually using it.
 
 The initial goal is straightforward:
 
