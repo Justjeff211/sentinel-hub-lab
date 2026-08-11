@@ -1,0 +1,10 @@
+# Copy this to terraform.tfvars and fill in real values.
+# terraform.tfvars is gitignored - never commit real credentials.
+
+resource_group_name = "rg-sentinel-hub-lab"
+location             = "South Africa North"
+
+admin_username = "labadmin"
+admin_password = "REPLACE_WITH_A_STRONG_PASSWORD"
+
+enable_vpn_gateway = false
