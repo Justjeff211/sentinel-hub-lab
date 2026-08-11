@@ -17,10 +17,14 @@ jobs:
       - name: Install mermaid-cli
         run: npm install -g @mermaid-js/mermaid-cli
 
+      - name: Write Puppeteer no-sandbox config
+        run: |
+          echo '{"args": ["--no-sandbox", "--disable-setuid-sandbox"]}' > puppeteer-config.json
+
       - name: Render SVG and PNG
         run: |
-          mmdc -i diagrams/architecture.mmd -o diagrams/architecture.svg -b transparent
-          mmdc -i diagrams/architecture.mmd -o diagrams/architecture.png -b white
+          mmdc -p puppeteer-config.json -i diagrams/architecture.mmd -o diagrams/architecture.svg -b transparent
+          mmdc -p puppeteer-config.json -i diagrams/architecture.mmd -o diagrams/architecture.png -b white
 
       - name: Commit rendered diagram
         run: |
