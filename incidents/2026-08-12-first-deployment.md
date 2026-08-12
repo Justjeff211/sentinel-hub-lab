@@ -9,12 +9,12 @@ Run `terraform apply` for the first time against the network and identity Terraf
 
 ## What actually happened
 
-The plan looked clean (24 resources, reviewed before applying), but `apply` surfaced three separate real bugs, one after another:
+The plan looked clean (24 resources, reviewed before applying) but `apply` surfaced three separate real bugs, one after another:
 
-**1. VPN Gateway public IP — zone configuration error**
+**1. VPN Gateway public IP - zone configuration error**
 `ZRStandardIpNeeded: Standard IP Address requires zones configured.` My first fix (switching the IP to Basic SKU) turned out to be based on stale information -Azure retired Basic SKU public IPs for new deployments back in March 2025. The actual fix: keep the IP on Standard SKU, but explicitly set `zones = ["1", "2", "3"]` rather than leaving it unset. South Africa North does support Availability Zones which is what made this fixable.
 
-**2. VM size — capacity, then quota**
+**2. VM size - capacity, then quota**
 `Standard_B2ms` came back `SkuNotAvailable` genuinely out of stock in this region for that SKU. Tried `Standard_D2s_v3`, then `Standard_D2s_v5` which both failed too, the second one on a *different* error: `OperationNotAllowed... Current Limit: 0` - a quota problem, not a stock problem. Used `az vm list-skus` and `az vm list-usage` to check both capacity *and* quota properly instead of guessing a third time, and found `Standard_DS2_v2` had both: no stock restriction, and existing quota headroom on the subscription. That's what finally deployed successfully.
 
 **3. Credential entry**
@@ -41,9 +41,9 @@ Realised partway through that the VPN Gateway wasn't actually being used for any
 
 ## What I'd do differently next time
 
-- Set `terraform.tfvars` immediately, before the first `plan` — avoids retyping credentials at every interactive prompt.
+- Set `terraform.tfvars` immediately, before the first `plan` - avoids retyping credentials at every interactive prompt.
 - Check `az vm list-skus` *and* `az vm list-usage` before picking a VM size, not after a failure.
-- Cloud Shell sessions are ephemeral — don't assume `terraform.tfstate` survives a disconnect; treat every new session as potentially starting from zero.
+- Cloud Shell sessions are ephemeral - don't assume `terraform.tfstate` survives a disconnect; treat every new session as potentially starting from zero.
 
 ## Known open issue: AMA service not registering on Windows VMs
 
