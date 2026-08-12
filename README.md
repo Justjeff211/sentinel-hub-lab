@@ -356,7 +356,7 @@ The repository structure reflects both the implemented infrastructure foundation
 
 # Infrastructure as Code
 
-Terraform was new to me going into this — I hadn't used it professionally before.
+Terraform was new to me going into this meaning, I hadn't used it professionally before.
 
 The goal was to define the lab as code and make the environment reproducible, not to create an advanced Terraform project for its own sake.
 
