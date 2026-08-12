@@ -44,3 +44,16 @@ Realised partway through that the VPN Gateway wasn't actually being used for any
 - Set `terraform.tfvars` immediately, before the first `plan` — avoids retyping credentials at every interactive prompt.
 - Check `az vm list-skus` *and* `az vm list-usage` before picking a VM size, not after a failure.
 - Cloud Shell sessions are ephemeral — don't assume `terraform.tfstate` survives a disconnect; treat every new session as potentially starting from zero.
+
+## Known open issue: AMA service not registering on Windows VMs
+
+The `AzureMonitorWindowsAgent` extension reports `Succeeded` at the Azure control-plane level on both DC1 and AADCONNECT, and the extension's own status file confirms `"status":"success"` — but `Get-Service -Name AzureMonitorAgent` finds no such service on either VM, and no local agent logs are being written under `C:\Resources\Azure Monitor Agent`.
+
+Tried:
+- Rebooting both VMs, then reinstalling the extension fresh (via `az vm extension delete` + `terraform apply`) — no change.
+- Checked for the service under alternate names — nothing matching.
+- Confirmed the extension's package files exist on disk (`C:\Packages\Plugins\Microsoft.Azure.Monitor.AzureMonitorWindowsAgent`) — they do.
+
+This matches a documented pattern (not unique to this lab) where the AMA installer executable exits cleanly without the underlying Windows service ever actually registering — the ARM-level "success" only confirms the installer ran, not that the agent is functioning.
+
+Not currently blocking anything else — DC1, AADCONNECT, the domain, and the rest of the infrastructure are all working correctly. The Terraform and DCR configuration are confirmed correct (verified against Microsoft's own documented example). Left open for a future session rather than continuing to troubleshoot live tonight.
