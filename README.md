@@ -3,13 +3,13 @@
 
 A hands-on Azure SOC lab I built to understand how infrastructure, networking, telemetry and security monitoring come together in a realistic environment.
 
-This project was intentionally focused. The goal was never to recreate an entire enterprise environment or implement every component at production depth — it was to build enough of the environment to generate realistic activity, collect useful security telemetry, and use Microsoft Sentinel to investigate what's happening.
+This project was intentionally focused. The goal was never to recreate an entire enterprise environment or implement every component at production depth but was to build enough of the environment to generate realistic activity, collect useful security telemetry, and use Microsoft Sentinel to investigate what's happening.
 
 **Status: Paused**
 
 Azure Firewall, Bastion, VPN Gateway and running virtual machines cost real money the moment they exist, whether or not I'm actively using them. This is a self-funded lab, not something with a company card behind it, and I made the decision to stop rather than continue paying for infrastructure simply to keep an unfinished environment running.
 
-The network and identity layers were built and verified properly before I stopped. This isn't an abandoned half-attempt — it is a deliberate pause at a real, working milestone.
+The network and identity layers were built and verified properly before I stopped. This isn't an abandoned half-attempt but a deliberate pause at a real working milestone.
 
 ----------
 
@@ -219,7 +219,7 @@ nltest /sc_query
 
 ```
 
-The identity layer therefore moved beyond simply deploying virtual machines — it was genuinely functioning infrastructure.
+The identity layer therefore moved beyond simply deploying virtual machines and it was genuinely functioning infrastructure.
 
 ### Telemetry
 
