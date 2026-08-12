@@ -47,7 +47,7 @@ Realised partway through that the VPN Gateway wasn't actually being used for any
 
 ## Known open issue: AMA service not registering on Windows VMs
 
-The `AzureMonitorWindowsAgent` extension reports `Succeeded` at the Azure control-plane level on both DC1 and AADCONNECT, and the extension's own status file confirms `"status":"success"` — but `Get-Service -Name AzureMonitorAgent` finds no such service on either VM, and no local agent logs are being written under `C:\Resources\Azure Monitor Agent`.
+The `AzureMonitorWindowsAgent` extension reports `Succeeded` at the Azure control-plane level on both DC1 and AADCONNECT, and the extension's own status file confirms `"status":"success"` - but `Get-Service -Name AzureMonitorAgent` finds no such service on either VM, and no local agent logs are being written under `C:\Resources\Azure Monitor Agent`.
 
 Tried:
 - Rebooting both VMs, then reinstalling the extension fresh (via `az vm extension delete` + `terraform apply`) - no change.
