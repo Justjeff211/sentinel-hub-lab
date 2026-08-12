@@ -7,6 +7,14 @@ terraform {
       version = "~> 4.0"
     }
   }
+
+  backend "azurerm" {
+    resource_group_name  = "rg-tfstate"
+    storage_account_name = "tfstate3691e4ab"
+    container_name       = "tfstate"
+    key                  = "sentinel-hub-lab.tfstate"
+    use_azuread_auth     = false
+  }
 }
 
 # Auth isn't set here. Locally, run `az login` first and the provider uses
@@ -394,4 +402,91 @@ resource "azurerm_windows_virtual_machine" "aadconnect" {
     sku       = "2022-datacenter-g2"
     version   = "latest"
   }
+}
+
+# ---------------------------------------------------------------------------
+# Telemetry: Log Analytics + Azure Monitor Agent (Windows Event Logs)
+#
+# Scope note: this covers Windows host telemetry only. Zeek and Suricata
+# (network-level monitoring) need a dedicated sensor with visibility into
+# real traffic - deliberately deferred until there's a workload/Kali VM
+# actually generating something worth watching.
+# ---------------------------------------------------------------------------
+
+resource "azurerm_log_analytics_workspace" "soc" {
+  name                = "law-soc-hub-lab"
+  location            = azurerm_resource_group.this.location
+  resource_group_name = azurerm_resource_group.this.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+}
+
+resource "azurerm_monitor_data_collection_endpoint" "soc" {
+  name                = "dce-soc-hub-lab"
+  location            = azurerm_resource_group.this.location
+  resource_group_name = azurerm_resource_group.this.name
+}
+
+resource "azurerm_monitor_data_collection_rule" "windows_events" {
+  name                        = "dcr-windows-events"
+  location                    = azurerm_resource_group.this.location
+  resource_group_name         = azurerm_resource_group.this.name
+  data_collection_endpoint_id = azurerm_monitor_data_collection_endpoint.soc.id
+
+  destinations {
+    log_analytics {
+      workspace_resource_id = azurerm_log_analytics_workspace.soc.id
+      name                  = "law-destination"
+    }
+  }
+
+  data_flow {
+    streams      = ["Microsoft-WindowsEvent", "Microsoft-Event"]
+    destinations = ["law-destination"]
+  }
+
+  data_sources {
+    windows_event_log {
+      streams = ["Microsoft-WindowsEvent"]
+      x_path_queries = [
+        "Security!*",
+        "System!*",
+        "Application!*",
+        "Microsoft-Windows-Sysmon/Operational!*"
+      ]
+      name = "windowsEventLogs"
+    }
+  }
+}
+
+resource "azurerm_virtual_machine_extension" "ama_dc1" {
+  name                       = "AzureMonitorWindowsAgent"
+  virtual_machine_id         = azurerm_windows_virtual_machine.dc1.id
+  publisher                  = "Microsoft.Azure.Monitor"
+  type                       = "AzureMonitorWindowsAgent"
+  type_handler_version       = "1.0"
+  auto_upgrade_minor_version = true
+}
+
+resource "azurerm_monitor_data_collection_rule_association" "dc1" {
+  name                    = "dcra-dc1"
+  target_resource_id      = azurerm_windows_virtual_machine.dc1.id
+  data_collection_rule_id = azurerm_monitor_data_collection_rule.windows_events.id
+  depends_on              = [azurerm_virtual_machine_extension.ama_dc1]
+}
+
+resource "azurerm_virtual_machine_extension" "ama_aadconnect" {
+  name                       = "AzureMonitorWindowsAgent"
+  virtual_machine_id         = azurerm_windows_virtual_machine.aadconnect.id
+  publisher                  = "Microsoft.Azure.Monitor"
+  type                       = "AzureMonitorWindowsAgent"
+  type_handler_version       = "1.0"
+  auto_upgrade_minor_version = true
+}
+
+resource "azurerm_monitor_data_collection_rule_association" "aadconnect" {
+  name                    = "dcra-aadconnect"
+  target_resource_id      = azurerm_windows_virtual_machine.aadconnect.id
+  data_collection_rule_id = azurerm_monitor_data_collection_rule.windows_events.id
+  depends_on              = [azurerm_virtual_machine_extension.ama_aadconnect]
 }
