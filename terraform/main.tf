@@ -467,3 +467,102 @@ resource "azurerm_monitor_data_collection_rule_association" "aadconnect" {
   data_collection_rule_id = azurerm_monitor_data_collection_rule.windows_events.id
   depends_on              = [azurerm_virtual_machine_extension.ama_aadconnect]
 }
+
+# ---------------------------------------------------------------------------
+# Production Workloads spoke
+#
+# Scope for tonight: one Ubuntu box, host-based Zeek/Suricata (monitoring
+# its own traffic) rather than a dedicated network-wide sensor with traffic
+# mirroring - that's a genuinely bigger piece (Azure VNet TAP + route tables)
+# deliberately left for a future session.
+# ---------------------------------------------------------------------------
+
+resource "azurerm_virtual_network" "workloads" {
+  name                = "vnet-workloads"
+  address_space       = ["10.30.0.0/24"]
+  location            = azurerm_resource_group.this.location
+  resource_group_name = azurerm_resource_group.this.name
+}
+
+resource "azurerm_subnet" "workloads" {
+  name                 = "snet-workloads"
+  resource_group_name  = azurerm_resource_group.this.name
+  virtual_network_name = azurerm_virtual_network.workloads.name
+  address_prefixes     = ["10.30.0.0/25"]
+}
+
+resource "azurerm_virtual_network_peering" "hub_to_workloads" {
+  name                       = "peer-hub-to-workloads"
+  resource_group_name       = azurerm_resource_group.this.name
+  virtual_network_name      = azurerm_virtual_network.hub.name
+  remote_virtual_network_id = azurerm_virtual_network.workloads.id
+}
+
+resource "azurerm_virtual_network_peering" "workloads_to_hub" {
+  name                       = "peer-workloads-to-hub"
+  resource_group_name       = azurerm_resource_group.this.name
+  virtual_network_name      = azurerm_virtual_network.workloads.name
+  remote_virtual_network_id = azurerm_virtual_network.hub.id
+}
+
+# SSH only reachable from the hub (i.e. via Bastion) - no direct internet rule, same pattern as the identity NSG.
+resource "azurerm_network_security_group" "workloads" {
+  name                = "nsg-workloads"
+  location            = azurerm_resource_group.this.location
+  resource_group_name = azurerm_resource_group.this.name
+
+  security_rule {
+    name                       = "AllowSshFromHub"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "10.10.0.0/24"
+    destination_address_prefix = "*"
+  }
+}
+
+resource "azurerm_subnet_network_security_group_association" "workloads" {
+  subnet_id                 = azurerm_subnet.workloads.id
+  network_security_group_id = azurerm_network_security_group.workloads.id
+}
+
+resource "azurerm_network_interface" "ubuntu" {
+  name                = "nic-ubuntu"
+  location            = azurerm_resource_group.this.location
+  resource_group_name = azurerm_resource_group.this.name
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.workloads.id
+    private_ip_address_allocation = "Static"
+    private_ip_address            = "10.30.0.4"
+  }
+}
+
+resource "azurerm_linux_virtual_machine" "ubuntu" {
+  name                            = "vm-ubuntu"
+  computer_name                   = "ubuntu-workload"
+  location                        = azurerm_resource_group.this.location
+  resource_group_name             = azurerm_resource_group.this.name
+  size                            = var.vm_size
+  admin_username                  = var.admin_username
+  admin_password                  = var.admin_password
+  disable_password_authentication = false
+
+  network_interface_ids = [azurerm_network_interface.ubuntu.id]
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "StandardSSD_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "ubuntu-24_04-lts"
+    sku       = "server"
+    version   = "latest"
+  }
+}
