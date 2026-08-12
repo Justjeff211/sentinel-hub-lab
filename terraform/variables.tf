@@ -11,9 +11,9 @@ variable "location" {
 }
 
 variable "vm_size" {
-  description = "VM size for the identity servers."
+  description = "VM size for the identity servers. Standard_DS2_v2 confirmed available with quota headroom in South Africa North as of Aug 2026 - Standard_B2ms, Standard_D2s_v3, and Standard_D2s_v5 were all tried first and failed on either capacity or quota."
   type        = string
-  default     = "Standard_B2ms"
+  default     = "Standard_DS2_v2"
 }
 
 variable "admin_username" {
