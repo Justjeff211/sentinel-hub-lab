@@ -1,79 +1,58 @@
+
 # Sentinel Hub Lab
 
-A hands-on Azure SOC lab I'm building to understand how infrastructure, networking, telemetry and security monitoring come together in a realistic environment.
+A hands-on Azure SOC lab I built to understand how infrastructure, networking, telemetry and security monitoring come together in a realistic environment.
 
-This project is intentionally focused. The goal isn't to recreate an entire enterprise environment or implement every component at production depth.
+This project was intentionally focused. The goal was never to recreate an entire enterprise environment or implement every component at production depth — it was to build enough of the environment to generate realistic activity, collect useful security telemetry, and use Microsoft Sentinel to investigate what's happening.
 
-The goal is to build enough of the environment to generate realistic activity, collect useful security telemetry, and use Microsoft Sentinel to investigate what is happening.
+**Status: Paused**
 
-**Status: Work in progress**
+Azure Firewall, Bastion, VPN Gateway and running virtual machines cost real money the moment they exist, whether or not I'm actively using them. This is a self-funded lab, not something with a company card behind it, and I made the decision to stop rather than continue paying for infrastructure simply to keep an unfinished environment running.
+
+The network and identity layers were built and verified properly before I stopped. This isn't an abandoned half-attempt — it is a deliberate pause at a real, working milestone.
 
 ----------
 
-## What I'm Building
+## What I Set Out to Build
 
-The lab is based on a small **hub-and-spoke architecture in Azure South Africa North**.
+A small hub-and-spoke architecture in Azure South Africa North:
 
-It includes:
-
--   Azure Firewall
-    
--   Azure Bastion
+-   Azure Firewall, Bastion and hub-and-spoke networking
     
 -   VPN Gateway
     
--   Hub and spoke networking
-    
--   Active Directory
-    
--   DNS
-    
--   Microsoft Entra ID
+-   Active Directory, DNS and Microsoft Entra ID
     
 -   Windows and Linux workloads
     
 -   Kali Linux for controlled security testing
     
--   Sysmon
+-   Sysmon, Zeek and Suricata
     
--   Zeek
-    
--   Suricata
-    
--   Azure Monitor Agent
-    
--   Log Analytics
+-   Azure Monitor Agent feeding Log Analytics
     
 -   Microsoft Sentinel
     
 -   Microsoft Defender XDR
     
--   Storage
+-   Storage and Logic Apps for retention and automation
     
--   Logic Apps
+-   KQL for investigation and hunting
     
--   KQL
+-   Terraform for infrastructure as code
     
--   Terraform
-    
--   GitHub Actions
+-   GitHub Actions for repository automation
     
 
-Not every component will be explored to the same depth.
-
-Some components exist to provide the surrounding infrastructure and context for the SOC. Others are areas I intend to explore more deeply.
+The architecture was intentionally broader than what I ultimately implemented. Some components were infrastructure foundations, while others were intended to become part of the later detection, investigation and response workflow.
 
 ----------
 
 ## The Problem I'm Trying to Solve
 
-The main question behind this project is simple:
+> If something happens in the environment, can I see it, understand what happened, investigate it and respond?
 
-> **If something happens in the environment, can I see it, understand what happened, investigate it and respond?**
-
-A logistics environment can contain users, endpoints, servers, networks, branches and cloud services, all generating activity.
-
-From a SOC perspective, I want to be able to answer questions such as:
+From a SOC perspective, I want to be able to answer:
 
 -   What happened?
     
@@ -83,14 +62,14 @@ From a SOC perspective, I want to be able to answer questions such as:
     
 -   What evidence do we have?
     
--   What activity happened before and after the event?
+-   What activity happened before and after?
     
 -   Can the activity be detected?
     
 -   What should the analyst do next?
     
 
-This lab gives me somewhere to work through those questions.
+The lab was designed to give me a controlled environment in which to work through those questions.
 
 ----------
 
@@ -103,73 +82,59 @@ flowchart LR
     Internet((Internet))
     GitHub[GitHub]
     Entra[Microsoft Entra ID]
+    Azure[Azure Subscription]
 
-    subgraph Azure["Azure Subscription - South Africa North"]
+    subgraph AzureEnv["Azure Subscription - South Africa North"]
 
         subgraph Hub["Hub VNet - 10.10.0.0/24"]
-
             Bastion[Azure Bastion]
             Firewall[Azure Firewall]
-            Gateway[VPN Gateway]
             Mgmt[Management Subnet]
-
+            VPN[VPN Gateway]
         end
 
         subgraph Identity["Identity Spoke"]
-
             DC1[Windows Server]
             AD[Active Directory]
             DNS[DNS]
             AADConnect[Entra Connect]
-
         end
 
         subgraph SOC["SOC Tools Spoke"]
-
             Sentinel[Microsoft Sentinel]
             LAW[Log Analytics]
             Defender[Microsoft Defender XDR]
             Storage[Storage Account]
             Automation[Logic Apps]
             KQL[KQL Analytics]
-
         end
 
-        subgraph Workloads["Workloads"]
-
+        subgraph Workloads["Production Workloads"]
             Win11[Windows 11]
             WinServer[Windows Server]
             Ubuntu[Ubuntu Server]
-
         end
 
         subgraph Testing["Security Testing"]
-
             Kali[Kali Linux]
-
         end
 
         subgraph Monitoring["Network & Host Monitoring"]
-
             AMA[Azure Monitor Agent]
             Sysmon[Sysmon]
             Zeek[Zeek]
             Suricata[Suricata]
-
         end
 
     end
 
     subgraph DevOps["Infrastructure as Code"]
-
         Terraform[Terraform]
         Actions[GitHub Actions]
-
     end
 
     Internet --> Firewall
     Firewall --> Hub
-
     Hub --> Identity
     Hub --> SOC
     Hub --> Workloads
@@ -203,188 +168,152 @@ flowchart LR
 
 ```
 
-The architecture is intentionally broader than the initial implementation.
+This is the **full planned architecture**, not a claim that every component shown above was completed.
 
-The purpose is to give the lab a realistic structure while allowing individual components to be developed as I progress.
+The sections below distinguish between what was actually built and verified and what remained planned when development was paused.
 
 ----------
 
-# Hub Network
+## What's Actually Built and Verified
 
-The Hub VNet acts as the central network for the environment.
+### Network
 
-It contains:
+The core Azure network foundation was successfully deployed.
 
+This included:
+
+-   Hub VNet
+    
+-   Identity Spoke
+    
+-   Production Workloads spoke
+    
+-   VNet peering
+    
 -   Azure Firewall
     
 -   Azure Bastion
     
--   VPN Gateway
-    
 -   Management connectivity
     
+-   VPN Gateway
+    
 
-The hub provides the central point through which the different spokes and services can communicate.
+The VPN Gateway was subsequently removed after confirming that nothing in the environment was actually using it. It was consuming Azure spend without providing value to the current build, so removing it was a deliberate engineering decision rather than a failed deployment.
+
+### Identity
+
+DC1 was promoted to a real Active Directory forest and verified using actual Windows and Active Directory diagnostics, including:
+
+-   `Get-ADDomain`
+    
+-   `Get-ADDomainController`
+    
+-   Active Directory service checks
+    
+
+A second Windows Server was domain-joined and its secure channel was verified using:
+
+```text
+nltest /sc_query
+
+```
+
+The identity layer therefore moved beyond simply deploying virtual machines — it was genuinely functioning infrastructure.
+
+### Telemetry
+
+The telemetry foundation was partially implemented.
+
+This included:
+
+-   Log Analytics workspace
+    
+-   Data Collection Rule
+    
+-   Azure Monitor Agent
+    
+-   Windows event collection configuration
+    
+
+The Data Collection Rule was corrected and verified against Microsoft's documented configuration after the stream name was initially incorrect.
+
+One known issue remained open: the Azure Monitor Agent Windows service was not registering correctly on the Windows VMs despite Azure reporting successful deployment. This issue is documented in the `incidents/` directory rather than being hidden.
+
+### Infrastructure as Code
+
+Terraform reached a full clean deployment:
+
+```text
+Apply complete! Resources: 24 added, 0 changed, 0 destroyed.
+
+```
+
+The project also used a remote Terraform state backend in Azure Storage so state could survive across sessions.
+
+The build encountered real infrastructure problems along the way, including configuration and resource issues. These were diagnosed, corrected and redeployed rather than simply bypassed.
+
+Terraform was new to me going into this project, so this became a practical exercise in understanding:
+
+-   Resource dependencies
+    
+-   Terraform state
+    
+-   Plans and applies
+    
+-   Provider behaviour
+    
+-   Azure resource constraints
+    
+-   Remote state
+    
+-   Infrastructure troubleshooting
+    
+
+### Workloads
+
+An Ubuntu Server VM was successfully deployed into its own workload spoke.
+
+Zeek and Suricata installation commands were run against the Ubuntu VM, but full installation and telemetry verification were not completed before the project was paused.
 
 ----------
 
-# Identity
+# What's Not Built
 
-The Identity Spoke provides a small enterprise-style identity environment.
+The following components remained unfinished when development stopped:
 
-It includes:
-
--   Windows Server
+-   Kali Linux
     
--   Active Directory Domain Services
+-   Full Sysmon deployment and validation
     
--   DNS
+-   Complete Zeek telemetry integration
     
--   Microsoft Entra ID
+-   Complete Suricata telemetry integration
     
--   Entra Connect
+-   Microsoft Sentinel enablement
     
-
-The purpose is to create realistic identity-related activity that can eventually be monitored and investigated through the SOC.
-
-----------
-
-# Workloads
-
-The workloads represent systems that a SOC analyst could be responsible for monitoring.
-
-Current planned workloads include:
-
+-   Microsoft Defender XDR integration
+    
+-   Storage and evidence-retention workflows
+    
+-   Logic Apps response automation
+    
 -   Windows 11 endpoint
     
--   Windows Server
+-   Detection rules
     
--   Ubuntu Server
+-   KQL hunting content
     
-
-These systems provide different operating-system environments and generate different types of telemetry.
-
-----------
-
-# Security Testing
-
-Kali Linux is included as a controlled testing system.
-
-It is not intended to represent a production workload.
-
-Its purpose is to generate controlled activity against the lab so that I can investigate what that activity looks like from the SOC side.
-
-The emphasis is on:
-
-**Activity → Telemetry → Detection → Investigation**
-
-----------
-
-# Security Monitoring
-
-The monitoring layer is where the lab starts becoming useful from a SOC perspective.
-
-The environment includes:
-
-### Sysmon
-
-Used to provide detailed Windows host telemetry.
-
-### Zeek
-
-Used to provide network visibility and protocol-level information.
-
-### Suricata
-
-Used for network security monitoring and alert generation.
-
-### Azure Monitor Agent
-
-Used to collect and forward telemetry into Azure monitoring services.
-
-----------
-
-# Microsoft Sentinel
-
-Microsoft Sentinel is the central security monitoring platform for the lab.
-
-The intention is to use Sentinel for:
-
--   Log collection
+-   Incident investigation workflows
     
--   Analytics
+-   Automated response
     
--   Detection
-    
--   Investigation
-    
--   Threat hunting
-    
--   Incident management
+-   Network-wide traffic monitoring
     
 
-KQL will be used to query and investigate the collected telemetry.
+A full plain-language explanation of the remaining components and what implementing them would involve is documented in WHATS-LEFT.md
 
-The objective isn't simply to create alerts.
-
-I want to understand **why an alert exists, what evidence supports it and how an analyst would investigate it.**
-
-----------
-
-# Defender XDR
-
-Microsoft Defender XDR is included as part of the wider security architecture.
-
-It provides another source of security telemetry and allows me to explore how endpoint and Microsoft security signals can complement Sentinel.
-
-This component will remain relatively focused rather than becoming a separate Defender project.
-
-----------
-
-# Automation & Storage
-
-The architecture also includes:
-
--   Azure Storage
-    
--   Logic Apps
-    
-
-These components provide a foundation for exploring retention and security automation later in the project.
-
-They are included in the architecture but are not the primary focus of the lab.
-
-----------
-
-# Infrastructure as Code
-
-Terraform is part of the project because I want to learn how to build and manage Azure infrastructure as code.
-
-**Terraform is new to me.**
-
-I haven't previously worked with it professionally, so this project is also an opportunity to learn it by actually using it.
-
-The initial goal is straightforward:
-
-> Define the lab infrastructure in Terraform and make the environment reproducible.
-
-I don't intend to turn this into an advanced Terraform project.
-
-The focus is on learning the fundamentals and applying them to a real environment.
-
-----------
-
-# GitHub Actions
-
-GitHub Actions is also new territory for me.
-
-I'm using it to learn how automation can fit around the project.
-
-The current workflow automatically renders the Mermaid architecture diagrams when the source diagram changes.
-
-The longer-term goal is to use GitHub Actions alongside Terraform so that infrastructure changes can eventually be validated and managed through the repository.
-
-This will be developed gradually as I learn.
+The broader build journey, troubleshooting and intended detection scenarios are documented in RETROSPECTIVE.md
 
 ----------
 
@@ -414,18 +343,66 @@ sentinel-hub-lab/
 ├── incidents/
 │   └── ...
 │
+├── RETROSPECTIVE.md
+├── WHATS-LEFT.md
 ├── README.md
 └── LICENSE
 
 ```
 
-The repository structure will evolve as the lab develops.
+The repository structure reflects both the implemented infrastructure foundation and the planned SOC workflow.
 
 ----------
 
-# Planned Workflow
+# Infrastructure as Code
 
-The overall workflow for the lab is:
+Terraform was new to me going into this — I hadn't used it professionally before.
+
+The goal was to define the lab as code and make the environment reproducible, not to create an advanced Terraform project for its own sake.
+
+It was genuinely tested through the build:
+
+-   Real deployment failures
+    
+-   Real configuration problems
+    
+-   Real Azure constraints
+    
+-   Real state management issues
+    
+-   Real fixes
+    
+-   A remote state backend created during the project
+    
+
+The final clean deployment reached:
+
+```text
+24 resources added
+0 resources changed
+0 resources destroyed
+
+```
+
+That gave me practical experience with what actually happens when infrastructure as code meets a real cloud environment.
+
+----------
+
+# GitHub Actions
+
+GitHub Actions was also new territory for me.
+
+The current workflow automatically renders the Mermaid architecture diagram when the source diagram changes.
+
+The longer-term intention was to use GitHub Actions alongside Terraform for infrastructure validation and automation.
+
+That stage was not reached before the project was paused.
+
+----------
+
+# Planned SOC Workflow
+
+The intended workflow for the complete lab was:
 
 ```text
 Infrastructure
@@ -450,62 +427,15 @@ Response
 
 ```
 
-The objective is to connect these pieces together rather than treating each technology as an isolated exercise.
+The purpose was to connect these pieces together rather than treat each technology as an isolated exercise.
 
-----------
-
-# Current Progress
-
-### Completed
-
--   Initial architecture
-    
--   Mermaid architecture diagram
-    
--   GitHub repository structure
-    
--   Automated Mermaid rendering with GitHub Actions
-    
-
-### In Progress
-
--   Azure infrastructure design
-    
--   Terraform learning
-    
--   Terraform infrastructure
-    
--   Network implementation
-    
--   Identity implementation
-    
--   Security telemetry pipeline
-    
-
-### Planned
-
--   Sentinel configuration
-    
--   Detection rules
-    
--   KQL investigations
-    
--   Threat hunting
-    
--   Controlled security activity
-    
--   Incident investigation
-    
--   Basic response automation
-    
+The project reached the **infrastructure, networking, identity and early telemetry stages**, but it did not reach a completed end-to-end detection and response workflow.
 
 ----------
 
 # Scope
 
-This is intentionally a **focused SOC lab**.
-
-It is not intended to be:
+This was never intended to be:
 
 -   A production-ready enterprise architecture
     
@@ -518,19 +448,19 @@ It is not intended to be:
 -   A replacement for a real SOC environment
     
 
-The purpose is to build, experiment, investigate and learn.
+The purpose was to build, experiment, investigate and learn.
 
-Some components will be implemented deeply.
+Some components were intended to be implemented deeply.
 
-Others will remain at a practical introductory level.
+Others were intentionally going to remain at a practical introductory level.
 
-That's intentional.
+That distinction was part of the design.
 
 ----------
 
 # What I'm Learning
 
-This project brings several areas together:
+This project brought several areas together:
 
 -   Azure networking
     
@@ -557,25 +487,25 @@ This project brings several areas together:
 -   Detection and investigation
     
 
-The project is being built incrementally.
+The project also taught me something that is difficult to learn from a certification course alone:
 
-I'm learning some of these technologies for the first time, particularly **Terraform and GitHub Actions**, so the repository will reflect that learning process.
+**how to debug infrastructure when the error message isn't the answer.**
+
+There were situations where the first deployment failed, the apparent fix wasn't enough, state no longer matched reality, resources had to be rebuilt, and the actual problem had to be isolated before continuing.
+
+That troubleshooting process became one of the most valuable parts of the build.
 
 ----------
 
 # Project Philosophy
 
-I'm not trying to build everything at once.
-
-The approach is simple:
-
 **Build → Test → Break → Investigate → Fix → Document**
 
-The end goal is not to have the biggest lab.
+The goal was never to have the biggest lab.
 
-It's to have a lab I can explain.
+It was to have a lab I could explain.
 
-I want to be able to look at every major component and understand:
+I wanted to be able to look at every major component and understand:
 
 -   Why it is there
     
@@ -585,7 +515,89 @@ I want to be able to look at every major component and understand:
     
 -   How that telemetry reaches the SOC
     
--   What an analyst can do with it
+-   What an analyst could do with it
     
 
-That's what I'm building towards.
+For the infrastructure and identity components that were completed, that objective was achieved.
+
+----------
+
+# Why the Project Was Paused
+
+Azure infrastructure costs are part of the reality of building cloud-based labs.
+
+Services such as Azure Firewall, Bastion, VPN Gateway and running virtual machines continue to incur costs while they are provisioned.
+
+This was a **self-funded project**.
+
+There was no company subscription or infrastructure budget behind the lab, and keeping the environment running while continuing development would eventually become financially unsustainable.
+
+Rather than leave the infrastructure running purely so the repository could appear to be "in progress", I made the decision to stop the deployment and preserve the work.
+
+The project was therefore **canned because of funding constraints, not because the architecture or infrastructure failed**.
+
+Before stopping, I made sure that the major completed layers were properly tested and documented.
+
+That distinction matters.
+
+The project did not reach its original end state, but the work that was completed was real, functional and verified.
+
+----------
+
+# Final State
+
+The final state of the project is the **Azure infrastructure and early identity foundation** of the planned SOC environment.
+
+The infrastructure deployment successfully reached:
+
+```text
+Apply complete! Resources: 24 added, 0 changed, 0 destroyed.
+
+```
+
+At the point development stopped:
+
+-   The Azure network foundation was deployed.
+    
+-   Hub and workload VNets were successfully connected.
+    
+-   Azure Firewall was operational.
+    
+-   Azure Bastion was deployed.
+    
+-   VPN Gateway had been deployed and later removed intentionally.
+    
+-   Windows Server infrastructure was deployed.
+    
+-   Active Directory was promoted and verified.
+    
+-   A second Windows Server was domain-joined and verified.
+    
+-   Log Analytics and the telemetry foundation were implemented.
+    
+-   An Ubuntu workload was deployed.
+    
+-   Terraform infrastructure management was functioning.
+    
+-   GitHub repository automation was functioning.
+    
+-   The remaining unfinished work was documented.
+    
+
+The project therefore isn't presented as a fully completed SOC platform.
+
+It is presented as a **working infrastructure milestone that was intentionally paused**.
+
+The unfinished scope is documented and preserves the build journey and lessons learned.
+
+Rather than hide the unfinished components, they remain visible so that anyone reviewing the repository can see exactly where the project stopped and why.
+
+Sometimes the right engineering decision isn't to keep something running.
+
+It's knowing when the cost of continuing no longer makes sense, stopping responsibly, documenting what was achieved, and taking the knowledge forward.
+
+----------
+
+# Licence
+
+MIT
