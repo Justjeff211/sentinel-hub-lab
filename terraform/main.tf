@@ -292,33 +292,10 @@ resource "azurerm_bastion_host" "hub" {
   }
 }
 
-# Costs money the moment it exists, whether or not it's carrying traffic.
-# Comment this out (and its public IP above) if you don't need it yet -
-# nothing else in this file depends on it.
-resource "azurerm_public_ip" "vpn_gateway" {
-  name                = "pip-vpngw"
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
-  allocation_method   = "Static"
-  sku                 = "Standard"
-  zones               = ["1", "2", "3"]
-}
-
-resource "azurerm_virtual_network_gateway" "hub" {
-  name                = "vpngw-hub"
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
-  type                = "Vpn"
-  vpn_type            = "RouteBased"
-  sku                 = "Basic"
-
-  ip_configuration {
-    name                          = "vpngw-ipconfig"
-    public_ip_address_id          = azurerm_public_ip.vpn_gateway.id
-    private_ip_address_allocation = "Dynamic"
-    subnet_id                     = azurerm_subnet.gateway.id
-  }
-}
+# VPN Gateway removed 12 Aug 2026 - was never actually used (no site-to-site
+# or point-to-site connection ever configured) and was the single most
+# expensive idle resource in the stack. GatewaySubnet is left in place below
+# in case it's genuinely needed later.
 
 # ---------------------------------------------------------------------------
 # Identity: DC1 and Entra Connect
@@ -441,13 +418,13 @@ resource "azurerm_monitor_data_collection_rule" "windows_events" {
   }
 
   data_flow {
-    streams      = ["Microsoft-WindowsEvent", "Microsoft-Event"]
+    streams      = ["Microsoft-Event"]
     destinations = ["law-destination"]
   }
 
   data_sources {
     windows_event_log {
-      streams = ["Microsoft-WindowsEvent"]
+      streams = ["Microsoft-Event"]
       x_path_queries = [
         "Security!*",
         "System!*",
