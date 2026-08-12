@@ -1,4 +1,4 @@
-# Everything Not Yet Built — A Beginner's Walkthrough
+# Everything Not Yet Built 
 
 This is a plain-language guide to every piece of the architecture that's still missing, why it matters, and what actually building it would involve. Written for someone who wasn't in the weeds of tonight's session and might not already know these tools.
 
@@ -6,17 +6,17 @@ This is a plain-language guide to every piece of the architecture that's still m
 
 ## Kali Linux (the attacker)
 
-**What it is:** A Linux distribution built specifically for security testing — it comes with hundreds of pre-installed tools for scanning networks, cracking passwords, and simulating attacks (Nmap, Hydra, Metasploit, and dozens more).
+**What it is:** A Linux distribution built specifically for security testing. It comes with hundreds of pre-installed tools for scanning networks, cracking passwords, and simulating attacks (Nmap, Hydra, Metasploit, and dozens more).
 
-**Why it matters here:** Without something actively generating attack-like activity, Sentinel would just be watching silence — there'd be nothing for any of the detection tooling to actually catch. Kali's job in this lab isn't to be a real threat; it's a controlled traffic generator, entirely contained within the lab's own private network.
+**Why it matters here:** Without something actively generating attack-like activity, Sentinel would just be watching silence as there'd be nothing for any of the detection tooling to actually catch. Kali's job in this lab isn't to be a real threat; it's a controlled traffic generator, entirely contained within the lab's own private network.
 
-**What building it takes:** Deploy another VM, same pattern as `vm-ubuntu` — a new NIC, a VM resource in Terraform, network access via Bastion. Then deliberately run things like a brute-force login attempt against the Ubuntu workload, or a port scan against the hub, and watch whether the rest of the pipeline actually notices.
+**What building it takes:** Deploy another VM, same pattern as `vm-ubuntu` — which is a new NIC and a VM resource in Terraform, network access via Bastion. Then deliberately run things like a brute-force login attempt against the Ubuntu workload, or a port scan against the hub, and watch whether the rest of the pipeline actually notices.
 
 ---
 
 ## Sysmon
 
-**What it is:** A free Microsoft tool (part of "Sysinternals") that installs on a Windows machine and logs far more detail than Windows tracks by default — every process that starts, every network connection made, every file created, every registry key changed. Normal Windows event logs are comparatively shallow; Sysmon is what actually lets someone reconstruct exactly what a machine did.
+**What it is:** A free Microsoft tool (part of "Sysinternals") that installs on a Windows machine and logs far more detail than Windows tracks by default; every process that starts, every network connection made, every file created, every registry key changed. Normal Windows event logs are comparatively shallow; Sysmon is what actually lets someone reconstruct exactly what a machine did.
 
 **Why it matters here:** The Data Collection Rule built tonight is already configured to pull from Sysmon's log channel — but Sysmon itself, the actual software, was never installed on any VM. It's like wiring a room for a smoke detector and never mounting the detector.
 
@@ -24,9 +24,9 @@ This is a plain-language guide to every piece of the architecture that's still m
 
 ---
 
-## Zeek and Suricata — installed, not yet verified or wired up
+## Zeek and Suricata — installed just not yet verified or wired up
 
-**What each does:** Zeek watches network traffic and writes a detailed diary of what it saw — a DNS lookup, a web request, an SSH connection — without necessarily judging any of it as "bad." Suricata is different: it's an Intrusion Detection System that compares traffic against a huge library of known attack signatures and raises alerts when something matches. Zeek tells the story; Suricata flags the dangerous parts of it.
+**What each does:** Zeek watches network traffic and writes a detailed diary of what it saw — a DNS lookup, a web request, an SSH connection ...without necessarily judging any of it as "bad." Suricata is different: it's an Intrusion Detection System that compares traffic against a huge library of known attack signatures and raises alerts when something matches. Zeek tells the story; Suricata flags the dangerous parts of it.
 
 **Where it stands:** Install commands were run against `vm-ubuntu` tonight, but the session ended before confirming both actually installed correctly.
 
@@ -36,7 +36,7 @@ This is a plain-language guide to every piece of the architecture that's still m
 
 ## Microsoft Sentinel
 
-**What it actually is:** Sentinel isn't a separate resource deployed from scratch — it's a set of extra capabilities turned on *on top of* an existing Log Analytics workspace. Right now, `law-soc-hub-lab` is just a plain log warehouse; Sentinel has never been switched on over it.
+**What it actually is:** Sentinel isn't a separate resource deployed from scratch. It's a set of extra capabilities turned on *on top of* an existing Log Analytics workspace. Right now, `law-soc-hub-lab` is just a plain log warehouse; Sentinel has never been switched on over it.
 
 **What it adds once enabled:** Analytics rules (automated KQL queries that scan incoming logs and create incidents when something matches), a proper incident-investigation interface, workbooks for visual dashboards, and the ability to pull in Microsoft's own threat intelligence.
 
@@ -46,7 +46,7 @@ This is a plain-language guide to every piece of the architecture that's still m
 
 ## Microsoft Defender XDR
 
-**What it is:** A separate Microsoft product family (Defender for Endpoint, Defender for Identity, and others) that generates its own detection signals using Microsoft's own threat intelligence — richer than what you'd get from just querying raw logs yourself. These signals can feed into Sentinel alongside your own data.
+**What it is:** A separate Microsoft product family (Defender for Endpoint, Defender for Identity, and others) that generates its own detection signals using Microsoft's own threat intelligence which is richer than what you'd get from just querying raw logs yourself. These signals can feed into Sentinel alongside your own data.
 
 **Why it's a bigger separate step:** Defender products need licensing/enablement at the tenant level, and endpoint protection specifically needs its own agent installed per VM — a genuinely separate onboarding flow from anything built tonight.
 
@@ -64,7 +64,7 @@ This is a plain-language guide to every piece of the architecture that's still m
 
 ## Actual KQL hunting
 
-**What it is:** The query language used to search through everything sitting in Log Analytics — similar in spirit to SQL, but purpose-built for fast searching across huge volumes of time-stamped log data.
+**What it is:** The query language used to search through everything sitting in Log Analytics ...similar in spirit to SQL, but purpose-built for fast searching across huge volumes of time-stamped log data.
 
 **Where it stands:** The only query run tonight (`Heartbeat | take 10`) was a connectivity check, not real threat hunting.
 
